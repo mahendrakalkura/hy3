@@ -15,10 +15,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 	PHANDLE = handle;
 
 #ifndef HY3_NO_VERSION_CHECK
-	const std::string COMPOSITOR_HASH = __hyprland_api_get_hash();
+	const auto HYPRLAND_VERSION = HyprlandAPI::getHyprlandVersion(PHANDLE);
 
 	// Arch can rebuild one Hyprland commit against newer dependency versions. The plugin compiles against those system dependencies, so require the Hyprland commit while ignoring stale dependency metadata in HyprPM's generated version header.
-	if (!COMPOSITOR_HASH.starts_with(GIT_COMMIT_HASH)) {
+	if (HYPRLAND_VERSION.hash.compare(GIT_COMMIT_HASH) != 0) {
 		HyprlandAPI::addNotification(
 		    PHANDLE,
 		    "[hy3] hy3 was compiled for a different version of hyprland; refusing to load.",
