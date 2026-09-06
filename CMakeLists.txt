@@ -13,6 +13,14 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DEPS REQUIRED hyprland pixman-1 libdrm pango pangocairo libinput wayland-client xkbcommon)
 
+# Arch packages Hyprland against current dependency versions without changing the upstream commit hash. Prefer the packaged version header so the plugin ABI string matches the running package instead of HyprPM's upstream dependency lock.
+set(HYPRLAND_PACKAGED_VERSION_HEADER "/usr/include/hyprland/src/version.h")
+if(EXISTS "${HYPRLAND_PACKAGED_VERSION_HEADER}")
+  set(HYPRLAND_PACKAGED_VERSION_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/packaged-version")
+  file(MAKE_DIRECTORY "${HYPRLAND_PACKAGED_VERSION_INCLUDE}/hyprland/src")
+  configure_file("${HYPRLAND_PACKAGED_VERSION_HEADER}" "${HYPRLAND_PACKAGED_VERSION_INCLUDE}/hyprland/src/version.h" COPYONLY)
+endif()
+
 add_library(hy3 SHARED
 	src/main.cpp
 	src/dispatchers.cpp
@@ -22,6 +30,10 @@ add_library(hy3 SHARED
 	src/shaders.cpp
 	src/render.cpp
 )
+
+if(DEFINED HYPRLAND_PACKAGED_VERSION_INCLUDE)
+  target_include_directories(hy3 BEFORE PRIVATE "${HYPRLAND_PACKAGED_VERSION_INCLUDE}")
+endif()
 
 configure_file(src/tab.vert ${CMAKE_CURRENT_BINARY_DIR}/src/tab.vert COPYONLY)
 file(READ ${CMAKE_CURRENT_BINARY_DIR}/src/tab.vert SHADER_TAB_VERT)
