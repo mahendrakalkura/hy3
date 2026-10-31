@@ -15,10 +15,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 	PHANDLE = handle;
 
 #ifndef HY3_NO_VERSION_CHECK
-	const auto HYPRLAND_VERSION = HyprlandAPI::getHyprlandVersion(PHANDLE);
+	const std::string COMPOSITOR_HASH = __hyprland_api_get_hash();
+	const std::string CLIENT_HASH = __hyprland_api_get_client_hash();
 
-	// Arch can rebuild one Hyprland commit against newer dependency versions. The plugin compiles against those system dependencies, so require the Hyprland commit while ignoring stale dependency metadata in HyprPM's generated version header.
-	if (HYPRLAND_VERSION.hash.compare(GIT_COMMIT_HASH) != 0) {
+	if (COMPOSITOR_HASH != CLIENT_HASH) {
 		HyprlandAPI::addNotification(
 		    PHANDLE,
 		    "[hy3] hy3 was compiled for a different version of hyprland; refusing to load.",
@@ -86,27 +86,27 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 		return makeUnique<Hy3Layout>();
 	});
 
-	g_renderListener = Event::bus()->m_events.render.stage.listen([](eRenderStage stage) {
+	g_renderListener = Event::bus()->m_events.render.stage.listen([](const Event::SRenderStageEvent& event) {
 		static bool rendering_normally = false;
 		static std::vector<Hy3TabGroup*> rendered_groups;
 
-		switch (stage) {
+		switch (event.stage) {
 		case RENDER_PRE_WINDOWS:
 			rendering_normally = true;
 			rendered_groups.clear();
 			break;
 		case RENDER_POST_WINDOW:
-			if (!rendering_normally) break;
+			if (!rendering_normally || !event.context) break;
 
 			for (auto& wp: g_tabGroups) {
 				auto* entry = wp.get();
 				if (!entry) continue;
 				if (!entry->hidden
-				    && entry->target_window == g_pHyprRenderer->m_renderData.currentWindow.lock()
+				    && entry->target_window == event.context->get().m_data.currentWindow.lock()
 				    && std::find(rendered_groups.begin(), rendered_groups.end(), entry)
 				           == rendered_groups.end())
 				{
-					g_pHyprRenderer->m_renderPass.add(makeUnique<Hy3TabPassElement>(entry));
+					g_pHyprRenderer->addPassElement(event.context->get(), makeUnique<Hy3TabPassElement>(entry));
 					rendered_groups.push_back(entry);
 				}
 			}
@@ -135,7 +135,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 	g_urgentListener = Event::bus()->m_events.window.urgent.listen([](PHLWINDOW window) {
 		if (!window) return;
-		window->m_isUrgent = true;
+		window->m_hints |= Desktop::View::WINDOW_HINT_URGENT;
 		auto* hy3 = hy3InstanceForWorkspace(window->m_workspace);
 		if (!hy3) return;
 		auto* node = hy3->getNodeFromWindow(window.get());

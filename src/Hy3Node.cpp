@@ -7,6 +7,7 @@
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/defines.hpp>
+#include <hyprland/src/desktop/view/window/WindowPresentation.hpp>
 #include <hyprland/src/plugins/PluginAPI.hpp>
 #include <hyprland/src/config/shared/workspace/WorkspaceRuleManager.hpp>
 #include <hyprutils/math/Box.hpp>
@@ -534,7 +535,7 @@ void Hy3Node::updateTabBarRecursive() {
 void Hy3Node::updateDecos() {
 	switch (this->type()) {
 	case Hy3NodeType::Target:
-		this->as_window()->updateDecorationValues();
+		this->as_window()->presentation().refreshValues();
 		break;
 	case Hy3NodeType::Group:
 		for (auto& child: this->as_group().children) {
@@ -547,7 +548,7 @@ void Hy3Node::updateDecos() {
 
 std::string Hy3Node::getTitle() {
 	switch (this->type()) {
-	case Hy3NodeType::Target: return this->as_window()->m_title;
+	case Hy3NodeType::Target: return this->as_window()->metadata().title();
 	case Hy3NodeType::Group:
 		std::string title;
 		auto& group = this->as_group();
@@ -573,7 +574,7 @@ std::string Hy3Node::getTitle() {
 
 bool Hy3Node::isUrgent() {
 	for (auto& window: this->windows()) {
-		if (window.m_isUrgent) return true;
+		if (window.m_hints & Desktop::View::WINDOW_HINT_URGENT) return true;
 	}
 	return false;
 }
@@ -654,7 +655,7 @@ std::string Hy3Node::debugNode() {
 		case Hy3GroupLayout::Root: {
 			auto* l = this->layout();
 			auto ws = l ? l->workspace() : nullptr;
-			buf << "root " << (ws ? ws->m_id : -1);
+			buf << "root " << (ws ? ws->addressableName() : "null");
 			break;
 		}
 		case Hy3GroupLayout::SplitH: buf << "splith"; break;
@@ -956,4 +957,3 @@ void Hy3Node::resize(ShiftDirection direction, double delta, bool no_animation) 
 		}
 	}
 }
-

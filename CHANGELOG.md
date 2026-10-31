@@ -1,6 +1,10 @@
 # Changelog
 
-# Upcoming
+# hl0.57.0 and before
+
+- Added configurable horizontal tab padding
+
+# hl0.56.0.1 and before
 
 - Fix mouse up+left mouse resize
 - Fix tab bars rendering in the wrong orientation on rotated monitors
